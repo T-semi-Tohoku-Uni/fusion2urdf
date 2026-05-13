@@ -6,6 +6,17 @@ Hope you enjoy the new features!
 
 This repo only supports Gazebo, if you are using pybullet, see: https://github.com/yanshil/Fusion2PyBullet.
 
+## 使い方
+```bash
+git clone git@github.com:T-semi-Tohoku-Uni/fusion2urdf.git
+cd fusion2urdf
+```
+macの場合
+```bash
+cp -r ./URDF_Exporter "$HOME/Library/Application Support/Autodesk/Autodesk Fusion 360/API/Scripts/"
+```
+ROSのバージョンは2に固定（macでのエラーを防止）．ROS1を使いたい場合は，これは使えない．
+
 ## Updated!!!
 * 2021/10/13: Version 1.2
   * Made the color and material detection more robust
