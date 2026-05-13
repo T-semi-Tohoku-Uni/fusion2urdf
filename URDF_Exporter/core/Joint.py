@@ -11,6 +11,9 @@ import adsk, re, traceback
 from xml.etree.ElementTree import Element, SubElement
 from ..utils import utils
 
+app = adsk.core.Application.get()
+ui = app.userInterface
+
 class Joint:
     def __init__(self, name, xyz, axis, parent, child, joint_type, upper_limit, lower_limit):
         """
@@ -126,7 +129,9 @@ def make_joints_dict(root, msg):
 
     joints_dict = {}
     
-    for joint in root.joints:
+    all_joints = list(root.joints) + list(root.asBuiltJoints)
+
+    for joint in all_joints:
         if joint.isLightBulbOn :
             joint_dict = {}
             joint_type = joint_type_list[joint.jointMotion.jointType]
@@ -233,23 +238,44 @@ def make_joints_dict(root, msg):
                 ori2.transformBy(mat)
                 return  ori2 #ori1,
     
+            def get_joint_xyz(joint):
+                candidates = []
+
+                for attr in [
+                    "geometryOrOriginTwo",
+                    "geometryOrOriginOne",
+                    "geometry",
+                ]:
+                    try:
+                        obj = getattr(joint, attr)
+                        if obj:
+                            candidates.append(obj)
+                    except:
+                        pass
+
+                for obj in candidates:
+                    try:
+                        if hasattr(obj, "geometry") and obj.geometry:
+                            try:
+                                return obj.geometry.origin
+                            except:
+                                pass
+
+                        if hasattr(obj, "origin"):
+                            return obj.origin
+                    except:
+                        pass
+
+                raise Exception(f"{joint.name} doesn't have joint origin")
+
+
             try:
-                #xyz_of_joint = getJointOriginWorldCoordinates(joint)
-                xyz_of_joint = joint.geometryOrOriginTwo.origin
-                joint_dict['xyz'] = [round(i / 100.0, 6) for i in xyz_of_joint.asArray()]  # converted to meter
-                #print(f"xyz : {joint_dict['xyz']}")
-    
+                xyz_of_joint = get_joint_xyz(joint)
+                joint_dict['xyz'] = [round(i / 100.0, 6) for i in xyz_of_joint.asArray()]
+
             except:
-                print('Failed:\n{}'.format(traceback.format_exc()))
-                try:
-                    if type(joint.geometryOrOriginTwo)==adsk.fusion.JointOrigin:
-                        data = joint.geometryOrOriginTwo.geometry.origin.asArray()
-                    else:
-                        data = joint.geometryOrOriginTwo.origin.asArray()
-                    joint_dict['xyz'] = [round(i / 100.0, 6) for i in data]  # converted to meter
-                except:
-                    msg = joint.name + " doesn't have joint origin. Please set it and run again."
-                    break
+                msg = joint.name + " doesn't have joint origin. Please set it and run again."
+                break
     
             joints_dict[joint.name] = joint_dict
     return joints_dict, msg
